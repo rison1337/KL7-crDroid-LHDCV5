@@ -1,0 +1,38 @@
+# Signing material and credentials
+*.jks
+*.keystore
+*.p12
+*.pem
+*.key
+local.properties
+
+# Built Android artifacts
+*.apk
+*.apks
+*.aab
+*.dex
+*.jar
+*.so
+*.zip
+*.img
+*.bin
+build/
+out/
+.gradle/
+
+# Device/vendor payloads and diagnostics
+payload/
+vendor/
+extracted-vendor/
+*.log
+*.trace
+*.anr
+*.tombstone
+
+# IDE/OS
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+

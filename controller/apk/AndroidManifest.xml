@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.rison.lhdccontrol"
+    android:versionCode="115"
+    android:versionName="1.1.5">
+    <uses-sdk android:minSdkVersion="36" android:targetSdkVersion="36" />
+    <application
+        android:allowBackup="false"
+        android:label="Bluetooth Codec Control"
+        android:icon="@android:drawable/ic_menu_manage"
+        android:theme="@android:style/Theme.Material.Light.NoActionBar"
+        android:supportsRtl="true">
+        <activity
+            android:name="com.rison.lhdccontrol.MainActivity"
+            android:exported="true"
+            android:screenOrientation="portrait">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

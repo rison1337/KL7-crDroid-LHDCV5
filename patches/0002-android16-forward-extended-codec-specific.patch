@@ -1,0 +1,14 @@
+diff --git a/android/app/src/com/android/bluetooth/a2dp/A2dpCodecConfig.java b/android/app/src/com/android/bluetooth/a2dp/A2dpCodecConfig.java
+--- a/android/app/src/com/android/bluetooth/a2dp/A2dpCodecConfig.java
++++ b/android/app/src/com/android/bluetooth/a2dp/A2dpCodecConfig.java
+@@ -103,6 +103,10 @@ class A2dpCodecConfig {
+         BluetoothCodecConfig currentCodecConfig = codecStatus.getCodecConfig();
+         if (prioritizedCodecType == currentCodecConfig.getCodecType()
++                // Android 16 can classify an extended-codec request as unchanged
++                // even when LHDC bitrate/LL fields differ. Type 7 is LHDC V5 in
++                // this backport; always forward it for native validation.
++                && newCodecConfig.getCodecType() != 7
+                 && (prioritizedCodecType != newCodecConfig.getCodecType()
+                         || (currentCodecConfig.similarCodecFeedingParameters(newCodecConfig)
+                                 && currentCodecConfig.sameCodecSpecificParameters(
+                                         newCodecConfig)))) {

@@ -1,0 +1,39 @@
+From a220d868ebe4a84e151865efa4b7c2f1042c41ff Mon Sep 17 00:00:00 2001
+From: Jakub Rotkiewicz <rotkiewicz@google.com>
+Date: Thu, 16 Oct 2025 08:40:09 +0000
+Subject: [PATCH] BluteoothCodecType: add LHDCV5 support to createFromId
+
+Bug: 367471127
+Bug: 423977897
+Flag: com.android.bluetooth.flags.lhdc_codec_support
+Test: atest BluetoothCodecsTest
+Change-Id: I927fba5bac589a14b4f386c668fb693b46a4deea
+---
+ framework/java/android/bluetooth/BluetoothCodecType.java | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/framework/java/android/bluetooth/BluetoothCodecType.java b/framework/java/android/bluetooth/BluetoothCodecType.java
+index bcc0e3c792..c806c81c98 100644
+--- a/framework/java/android/bluetooth/BluetoothCodecType.java
++++ b/framework/java/android/bluetooth/BluetoothCodecType.java
+@@ -94,6 +94,7 @@ public final class BluetoothCodecType implements Parcelable {
+         CODEC_ID_LDAC,
+         CODEC_ID_SONY_LDAC,
+         CODEC_ID_OPUS,
++        CODEC_ID_LHDCV5,
+     })
+     public @interface CodecId {}
+ 
+@@ -282,6 +283,12 @@ public final class BluetoothCodecType implements Parcelable {
+             return new BluetoothCodecType(
+                     BluetoothCodecConfig.SOURCE_CODEC_TYPE_OPUS, CODEC_ID_OPUS, "Opus");
+         }
++        if (Flags.a2dpLhdcApi()) {
++            if (codecId == CODEC_ID_LHDCV5) {
++                return new BluetoothCodecType(
++                        BluetoothCodecConfig.SOURCE_CODEC_TYPE_INVALID, CODEC_ID_LHDCV5, "LHDCV5");
++            }
++        }
+         return null;
+     }
+ 
