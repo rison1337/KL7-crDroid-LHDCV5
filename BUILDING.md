@@ -19,6 +19,12 @@ Android SDK 36, Android NDK для arm64 и Zygisk API.
 `patches/apply_rfcomm_a17_a16_connect_signal_fix.ps1`. Патч проверяет исходные
 байты на каждом смещении и намеренно завершится ошибкой на другом бинарнике.
 
+После RFCOMM-патча примените
+`patches/apply_a17_a16_pairing_callback_fix.ps1`. Android 17 передаёт в native
+bond/SSP callback дополнительные transport/pairing-algorithm аргументы, которых
+нет в JNI-контракте Java-части Android 16. Скрипт переставляет аргументы bond
+state/reason и pairing variant/passkey и также проверяет исходные инструкции.
+
 Текущий device-модуль использует точечную runtime-подмену только в namespace
 `com.android.bluetooth`. Нельзя брать payload от другой сборки: installer и
 boot guard намеренно сверяют SHA-256 штатной базы.
