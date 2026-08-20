@@ -25,4 +25,5 @@ fi
 
 ui_print "- Compatibility check passed"
 ui_print "- Bluetooth Codec Control will be installed after reboot"
+ui_print "- Auto profile: LHDC V5 / 500 Kbit/s / Low Latency"
 ui_print "- Reboot after installation"

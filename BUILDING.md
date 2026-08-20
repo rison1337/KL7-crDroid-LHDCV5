@@ -14,6 +14,11 @@ Android SDK 36, Android NDK для arm64 и Zygisk API.
 4. Примените `patches/0002-android16-forward-extended-codec-specific.patch`.
 5. Соберите Bluetooth APEX/APK и `libbluetooth_jni.so` в полном дереве прошивки.
 
+Для этой конкретной KL7-сборки native-библиотека Android 17 дополнительно
+адаптирована к ожидаемому Android 16 формату `sock_connect_signal_t` скриптом
+`patches/apply_rfcomm_a17_a16_connect_signal_fix.ps1`. Патч проверяет исходные
+байты на каждом смещении и намеренно завершится ошибкой на другом бинарнике.
+
 Текущий device-модуль использует точечную runtime-подмену только в namespace
 `com.android.bluetooth`. Нельзя брать payload от другой сборки: installer и
 boot guard намеренно сверяют SHA-256 штатной базы.
@@ -27,6 +32,11 @@ boot guard намеренно сверяют SHA-256 штатной базы.
 `LhdcControlBridge.java` должен исполняться системным `app_process` с доступом к
 Bluetooth framework API. `LhdcControlDaemon.java` принимает только команды
 `list`/валидированный `set` через приватные app-owned файлы.
+
+Режим `LhdcControlBridge auto` обслуживает автопрофиль. Его supervisor находится
+в `module/controller/autoprofile.sh`: при подключении гарнитуры с LHDC V5 он один раз
+применяет 48 кГц/24 бит/500 Кбит/с/LL и перезапускает bridge после рестарта
+Bluetooth service.
 
 Подпишите APK своим ключом. Никогда не коммитьте JKS, пароли или готовый payload.
 `controller/ApkSign.java` — использованный локальный helper на базе Android
@@ -44,4 +54,3 @@ Bluetooth framework API. `LhdcControlDaemon.java` принимает тольк�
 device-specific Bluetooth payload. В публичном репозитории бинарники отсутствуют.
 Перед распространением обязательно обновите ожидаемые хеши и протестируйте
 аварийное отключение модулей на целевом устройстве.
-

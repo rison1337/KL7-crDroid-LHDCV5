@@ -51,6 +51,32 @@ if [ -f "$MODDIR/.guard_ok" ] && [ -f "$DAEMON_JAR" ] && [ -f "$BRIDGE_JAR" ]; t
   fi
 fi
 
+AUTO_SCRIPT="$MODDIR/controller/autoprofile.sh"
+AUTO_LOG="$MODDIR/controller/autoprofile.log"
+AUTO_PID_FILE="$MODDIR/controller/autoprofile.pid"
+AUTO_RESULT="skipped"
+if [ -f "$MODDIR/.guard_ok" ] && [ -f "$BRIDGE_JAR" ] && [ -f "$AUTO_SCRIPT" ]; then
+  OLD_AUTO_PID=$(cat "$AUTO_PID_FILE" 2>/dev/null)
+  if [ -n "$OLD_AUTO_PID" ] && [ -d "/proc/$OLD_AUTO_PID" ]; then
+    OLD_AUTO_CMD=$(tr '\000' ' ' < "/proc/$OLD_AUTO_PID/cmdline" 2>/dev/null)
+    case "$OLD_AUTO_CMD" in
+      *autoprofile.sh*) kill "$OLD_AUTO_PID" 2>/dev/null ;;
+    esac
+  fi
+  : > "$AUTO_LOG"
+  nohup sh "$AUTO_SCRIPT" "$BRIDGE_JAR" "$MODDIR" >>"$AUTO_LOG" 2>&1 &
+  echo $! > "$AUTO_PID_FILE"
+  sleep 1
+  NEW_AUTO_PID=$(cat "$AUTO_PID_FILE" 2>/dev/null)
+  if grep -q '^AUTO_READY ' "$AUTO_LOG"; then
+    AUTO_RESULT="ready pid=$NEW_AUTO_PID"
+  elif [ -n "$NEW_AUTO_PID" ] && [ -d "/proc/$NEW_AUTO_PID" ]; then
+    AUTO_RESULT="supervisor ready pid=$NEW_AUTO_PID"
+  else
+    AUTO_RESULT="failed: $(tail -n 3 "$AUTO_LOG" | tr '\n' ' ')"
+  fi
+fi
+
 {
   echo "$(date '+%F %T') boot completed"
   echo "build=$(getprop ro.build.display.id)"
@@ -59,5 +85,6 @@ fi
   echo "controller=$CONTROLLER_RESULT"
   echo "controller_path=$(pm path com.rison.lhdccontrol 2>/dev/null | head -n 1)"
   echo "controller_daemon=$DAEMON_RESULT"
+  echo "auto_profile=$AUTO_RESULT"
   echo "zygisk_mount_log: logcat -s LhdcV5Mount"
 } >> "$MODDIR/status.log"

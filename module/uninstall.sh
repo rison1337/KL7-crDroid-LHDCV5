@@ -21,3 +21,12 @@ if [ -n "$DAEMON_PID" ] && [ -d "/proc/$DAEMON_PID" ]; then
     *LhdcControlDaemon*) kill "$DAEMON_PID" 2>/dev/null ;;
   esac
 fi
+
+AUTO_PID_FILE="${0%/*}/controller/autoprofile.pid"
+AUTO_PID=$(cat "$AUTO_PID_FILE" 2>/dev/null)
+if [ -n "$AUTO_PID" ] && [ -d "/proc/$AUTO_PID" ]; then
+  AUTO_CMD=$(tr '\000' ' ' < "/proc/$AUTO_PID/cmdline" 2>/dev/null)
+  case "$AUTO_CMD" in
+    *autoprofile.sh*) kill "$AUTO_PID" 2>/dev/null ;;
+  esac
+fi
