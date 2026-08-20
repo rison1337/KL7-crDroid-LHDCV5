@@ -30,13 +30,16 @@ boot guard намеренно сверяют SHA-256 штатной базы.
 Манифест находится в `controller/apk/AndroidManifest.xml`.
 
 `LhdcControlBridge.java` должен исполняться системным `app_process` с доступом к
-Bluetooth framework API. `LhdcControlDaemon.java` принимает только команды
-`list`/валидированный `set` через приватные app-owned файлы.
+Bluetooth framework API. Для компиляции его event-driven режима добавьте
+`controller/system-stubs` перед публичным `android.jar`: там находится только
+compile-time декларация `BluetoothConnectionCallback`, отсутствующая в SDK.
+Stub нельзя включать в итоговый DEX/JAR. `LhdcControlDaemon.java` принимает только
+команды `list`/валидированный `set` через приватные app-owned файлы.
 
 Режим `LhdcControlBridge auto` обслуживает автопрофиль. Его supervisor находится
-в `module/controller/autoprofile.sh`: при подключении гарнитуры с LHDC V5 он один раз
-применяет 48 кГц/24 бит/500 Кбит/с/LL и перезапускает bridge после рестарта
-Bluetooth service.
+в `module/controller/autoprofile.sh`: при системном Bluetooth/Audio callback для
+гарнитуры с LHDC V5 он один раз применяет 48 кГц/24 бит/500 Кбит/с/LL и
+перезапускает bridge после рестарта Bluetooth service. Периодического опроса нет.
 
 Подпишите APK своим ключом. Никогда не коммитьте JKS, пароли или готовый payload.
 `controller/ApkSign.java` — использованный локальный helper на базе Android

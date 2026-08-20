@@ -16,8 +16,8 @@ trap stop_child TERM INT HUP
 echo "SUPERVISOR_READY"
 
 while [ -f "$MODDIR/.guard_ok" ]; do
-  if [ "$(settings get global bluetooth_on 2>/dev/null)" != "1" ]; then
-    sleep 5
+  if ! cmd bluetooth_manager wait-for-state:STATE_ON >/dev/null 2>&1; then
+    sleep 30
     continue
   fi
 
@@ -29,4 +29,3 @@ while [ -f "$MODDIR/.guard_ok" ]; do
   echo "AUTO_EXIT code=$RESULT; restart in 3s"
   sleep 3
 done
-

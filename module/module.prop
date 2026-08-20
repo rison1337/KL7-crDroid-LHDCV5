@@ -1,6 +1,6 @@
 id=lhdcv5_kl7
 name=LHDC V5 Bluetooth for KL7 crDroid 12.9
-version=1.1.7-KL7-20260419
-versionCode=117
+version=1.1.8-KL7-20260419
+versionCode=118
 author=Rison183 + Codex
-description=LHDC V5 backport with Android 16 RFCOMM compatibility, automatic LHDC V5 500 kbit/s + LL profile, Codec Control and HID Host for TECNO KL7, crDroid 12.9 Android 16 (20260419). Exact-build guard.
+description=LHDC V5 backport with Android 16 RFCOMM compatibility, event-driven LHDC V5 500 kbit/s + LL profile, Codec Control and HID Host for TECNO KL7, crDroid 12.9 Android 16 (20260419). Exact-build guard.

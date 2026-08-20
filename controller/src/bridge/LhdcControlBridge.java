@@ -6,10 +6,10 @@ import android.bluetooth.BluetoothCodecType;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothProfile;
 import android.content.AttributionSource;
-import android.content.BroadcastReceiver;
 import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
+import android.media.AudioDeviceCallback;
+import android.media.AudioDeviceInfo;
+import android.media.AudioManager;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
@@ -34,6 +34,8 @@ public final class LhdcControlBridge {
     private static final Map<String, Integer> autoAttempts = new HashMap<>();
     private static BluetoothA2dp a2dp;
     private static Handler autoHandler;
+    private static BluetoothAdapter.BluetoothConnectionCallback autoConnectionCallback;
+    private static AudioDeviceCallback autoAudioCallback;
 
     private static Context systemContext() throws Exception {
         Class<?> cls = Class.forName("android.app.ActivityThread");
@@ -251,49 +253,69 @@ public final class LhdcControlBridge {
         }, "lhdc-auto-" + address.replace(":", "")).start(), delayMs);
     }
 
-    private static void pollAuto() {
-        try {
-            Set<String> connected = new HashSet<>();
-            for (BluetoothDevice device : a2dp.getConnectedDevices()) {
-                connected.add(device.getAddress());
-                scheduleAuto(device, 1500);
+    private static void rescanAuto(long delayMs) {
+        autoHandler.postDelayed(() -> {
+            try {
+                List<BluetoothDevice> devices = a2dp.getConnectedDevices();
+                Set<String> connected = new HashSet<>();
+                for (BluetoothDevice device : devices) connected.add(device.getAddress());
+                synchronized (AUTO_LOCK) {
+                    autoApplied.removeIf(address -> !connected.contains(address));
+                    autoAttempts.keySet().removeIf(address -> !connected.contains(address));
+                }
+                for (BluetoothDevice device : devices) scheduleAuto(device, 1000);
+            } catch (Throwable error) {
+                System.err.println("AUTO_RESCAN " + error.getClass().getSimpleName()
+                        + ": " + error.getMessage());
             }
-            synchronized (AUTO_LOCK) {
-                autoApplied.removeIf(address -> !connected.contains(address));
-                autoAttempts.keySet().removeIf(address -> !connected.contains(address));
-            }
-        } catch (Throwable error) {
-            System.err.println("AUTO_POLL " + error.getClass().getSimpleName()
-                    + ": " + error.getMessage());
-        } finally {
-            autoHandler.postDelayed(LhdcControlBridge::pollAuto, 2000);
-        }
+        }, delayMs);
     }
 
-    private static void startAuto(Context context) {
+    private static void startAuto(Context context, BluetoothAdapter adapter) {
         autoHandler = new Handler(Looper.getMainLooper());
-        IntentFilter filter = new IntentFilter();
-        filter.addAction(BluetoothA2dp.ACTION_CONNECTION_STATE_CHANGED);
-        filter.addAction("android.bluetooth.a2dp.profile.action.CODEC_CONFIG_CHANGED");
-        BroadcastReceiver receiver = new BroadcastReceiver() {
-            @Override public void onReceive(Context receiverContext, Intent intent) {
-                BluetoothDevice device = intent.getParcelableExtra(
-                        BluetoothDevice.EXTRA_DEVICE, BluetoothDevice.class);
-                if (device == null) return;
-                if (BluetoothA2dp.ACTION_CONNECTION_STATE_CHANGED.equals(intent.getAction())) {
-                    int state = intent.getIntExtra(BluetoothProfile.EXTRA_STATE,
-                            BluetoothProfile.STATE_DISCONNECTED);
-                    if (state == BluetoothProfile.STATE_CONNECTED) scheduleAuto(device, 2500);
-                    else if (state == BluetoothProfile.STATE_DISCONNECTED)
-                        clearAuto(device.getAddress());
-                } else {
-                    scheduleAuto(device, 1200);
+        autoConnectionCallback = new BluetoothAdapter.BluetoothConnectionCallback() {
+            @Override public void onDeviceConnected(BluetoothDevice device) {
+                System.out.println("AUTO_EVENT connected " + device.getAddress());
+                scheduleAuto(device, 2500);
+            }
+
+            @Override public void onDeviceDisconnected(BluetoothDevice device, int reason) {
+                System.out.println("AUTO_EVENT disconnected " + device.getAddress()
+                        + " reason=" + reason);
+                clearAuto(device.getAddress());
+            }
+        };
+        boolean callbackRegistered = adapter.registerBluetoothConnectionCallback(
+                command -> autoHandler.post(command), autoConnectionCallback);
+        if (!callbackRegistered)
+            throw new IllegalStateException("Bluetooth connection callback registration failed");
+
+        AudioManager audioManager = context.getSystemService(AudioManager.class);
+        if (audioManager == null) throw new IllegalStateException("AudioManager unavailable");
+        autoAudioCallback = new AudioDeviceCallback() {
+            private boolean containsA2dp(AudioDeviceInfo[] devices) {
+                for (AudioDeviceInfo device : devices)
+                    if (device.getType() == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP) return true;
+                return false;
+            }
+
+            @Override public void onAudioDevicesAdded(AudioDeviceInfo[] addedDevices) {
+                if (containsA2dp(addedDevices)) {
+                    System.out.println("AUTO_AUDIO A2DP added");
+                    rescanAuto(500);
+                }
+            }
+
+            @Override public void onAudioDevicesRemoved(AudioDeviceInfo[] removedDevices) {
+                if (containsA2dp(removedDevices)) {
+                    System.out.println("AUTO_AUDIO A2DP removed");
+                    rescanAuto(500);
                 }
             }
         };
-        context.registerReceiver(receiver, filter, Context.RECEIVER_EXPORTED);
-        pollAuto();
-        System.out.println("AUTO_READY LHDC V5 48 kHz 24 bit 500 kbit LL");
+        audioManager.registerAudioDeviceCallback(autoAudioCallback, autoHandler);
+        rescanAuto(0);
+        System.out.println("AUTO_READY event-driven LHDC V5 48 kHz 24 bit 500 kbit LL");
     }
 
     private static void apply(String[] args) throws Exception {
@@ -361,7 +383,7 @@ public final class LhdcControlBridge {
             @Override public void onServiceConnected(int profile, BluetoothProfile proxy) {
                 a2dp = (BluetoothA2dp) proxy;
                 if (autoMode) {
-                    try { startAuto(context); }
+                    try { startAuto(context, adapter); }
                     catch (Throwable error) {
                         error.printStackTrace(System.err);
                         System.exit(2);
